@@ -1,0 +1,10 @@
+calculator, 1+2*3, 7
+calculator, 2-(4+2), -4
+calculator, (3+2)*2, 10
+calculator, --1, 1
+calculator, 2^3^2, 512
+calculator, 2^3+1, 9
+calculator, 2^3*2, 16
+calculator, log 8 base 2, 3
+calculator, log 8 base 2 + 1, 4
+calculator, -3^2, -9
