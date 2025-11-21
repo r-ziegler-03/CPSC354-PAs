@@ -1,2 +1,9 @@
+*.pyc
 venv
+.python-version
 .DS_Store
+__pycache__
+local
+tracing-*
+testing4b.py
+*.py.txt
