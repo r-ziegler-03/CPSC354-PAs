@@ -42,15 +42,16 @@ def evaluate(tree):
             name = e1[1]
             arg = tree[2]
             rhs = substitute(body, name, arg)
-            result = evaluate(rhs)
-            pass
+            return evaluate(rhs)
         else:
-            result = ('app', e1, tree[2])
-            pass
+            # evaluate both sides to keep normalizing everywhere
+            return ('app', e1, evaluate(tree[2]))
+    elif tree[0] == 'lam':
+        # normalize under lambdas
+        return ('lam', tree[1], evaluate(tree[2]))
     else:
-        result = tree
-        pass
-    return result
+        return tree
+
 
 # generate a fresh name 
 # needed eg for \y.x [y/x] --> \z.y where z is a fresh name)
