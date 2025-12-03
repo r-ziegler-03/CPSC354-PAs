@@ -1,11 +1,35 @@
-?start: exp
+?start: exp_prog
 
-?exp: "\\" NAME "." exp             -> lam
-      | exp1            
-?exp1: exp1 exp2                    -> app
-      | exp2
-?exp2: NAME                         -> var
-      | "(" exp ")"
+?exp_prog: exp ";;" exp_prog      -> prog
+         | exp
+
+?exp: "if" exp "then" exp "else" exp -> if_expr
+    | "let" NAME "=" exp_or "in" exp   -> let_expr
+    | "letrec" NAME "=" exp_or "in" exp -> letrec_expr
+    | "fix" exp_or                    -> fix_expr
+    | exp_or
+?exp_or: "\\" NAME "." exp            -> lam
+        | exp_comp
+?exp_comp: exp_comp "<=" exp_add      -> leq
+         | exp_comp "==" exp_add      -> eq
+         | exp_add
+?exp_add: exp_add "+" exp_mul         -> plus
+        | exp_add "-" exp_mul         -> minus
+        | exp_mul
+?exp_mul: exp_mul "*" exp_unary       -> times
+        | exp_unary
+?exp_unary: "-" exp_unary             -> neg
+          | exp_app
+?exp_app: exp_app exp_cons            -> app
+        | exp_cons
+?exp_cons: exp_atom ":" exp_cons      -> cons
+         | exp_atom
+?exp_atom: NAME                       -> var
+         | NUMBER                     -> num
+         | "#"                        -> nil
+         | "hd" exp_app               -> hd
+         | "tl" exp_app               -> tl
+         | "(" exp_prog ")"
 
 NAME: /[a-z_][a-zA-Z0-9_]*/         
 %import common.NUMBER

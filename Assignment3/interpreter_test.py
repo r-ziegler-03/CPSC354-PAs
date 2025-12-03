@@ -1,24 +1,9 @@
 from interpreter import interpret, substitute, evaluate, LambdaCalculusTransformer, parser, linearize
-from lark import Lark, Transformer
 from colorama import Fore, Style
-
-# for testing the grammar, the parser and the conversion to ASTs
-def print_trees(source_code):
-    print("Source code:", source_code); print()
-    cst = parser.parse(source_code)
-    #print("CST:", cst); print()
-    ast = LambdaCalculusTransformer().transform(cst)
-    print("AST:", ast); print()
-    print("===\n")
 
 # convert concrete syntax to AST
 def ast(source_code):
     return LambdaCalculusTransformer().transform(parser.parse(source_code))
-
-def print_ast(source_code):
-    print()
-    print("AST:", ast(source_code))
-    print()
 
 def test_parse():
     MAGENTA = '\033[95m'
@@ -123,8 +108,127 @@ def test_interpret():
 
     print("\ninterpret(): All tests passed!\n")
 
+def test_arithmetic():
+    BLUE = '\033[94m'
+    RESET = '\033[0m'
+    
+    assert interpret("1+2") == "3.0"
+    print(f"ARITH {BLUE}1+2{RESET} == 3.0")
+    
+    assert interpret("3*4") == "12.0"
+    print(f"ARITH {BLUE}3*4{RESET} == 12.0")
+    
+    assert interpret("2+3*4") == "14.0"
+    print(f"ARITH {BLUE}2+3*4{RESET} == 14.0")
+    
+    assert interpret("(2+3)*4") == "20.0"
+    print(f"ARITH {BLUE}(2+3)*4{RESET} == 20.0")
+    
+    assert interpret("-5") == "-5.0"
+    print(f"ARITH {BLUE}-5{RESET} == -5.0")
+    
+    print("\narithmetic(): All tests passed!\n")
+
+def test_lambda_arith():
+    BLUE = '\033[94m'
+    RESET = '\033[0m'
+    
+    assert interpret(r"(\x.x + 1) 5") == "6.0"
+    print(f"LAMBDA {BLUE}(\\x.x + 1) 5{RESET} == 6.0")
+    
+    assert interpret(r"(\x.\y.x + y) 3 4") == "7.0"
+    print(f"LAMBDA {BLUE}(\\x.\\y.x + y) 3 4{RESET} == 7.0")
+    
+    assert interpret(r"(\x.x * x) 3") == "9.0"
+    print(f"LAMBDA {BLUE}(\\x.x * x) 3{RESET} == 9.0")
+    
+    assert interpret(r"\x.(\y.y)x") == r"(\x.((\y.y) x))"
+    print(f"LAMBDA {BLUE}\\x.(\\y.y)x{RESET} == (\\x.((\\y.y) x)) [lazy]")
+
+    print("\nlambda_arith(): All tests passed!\n")
+
+def test_if_let_letrec():
+    BLUE = '\033[94m'
+    RESET = '\033[0m'
+    
+    assert interpret("if 1 then 5 else 6") == "5.0"
+    print(f"IF {BLUE}if 1 then 5 else 6{RESET} == 5.0")
+    
+    assert interpret("if 0 == 0 then 5 else 6") == "5.0"
+    print(f"IF {BLUE}if 0 == 0 then 5 else 6{RESET} == 5.0")
+    
+    assert interpret("if 0 <= 1 then 6 else 7") == "6.0"
+    print(f"IF {BLUE}if 0 <= 1 then 6 else 7{RESET} == 6.0")
+    
+    assert interpret("let x = 1 in x") == "1.0"
+    print(f"LET {BLUE}let x = 1 in x{RESET} == 1.0")
+    
+    assert interpret(r"let f = \x.x+1 in f 10") == "11.0"
+    print(f"LET {BLUE}let f = \\x.x+1 in f 10{RESET} == 11.0")
+    
+    assert interpret(r"letrec f = \n. if n==0 then 1 else n*f(n-1) in f 5") == "120.0"
+    print(f"LETREC {BLUE}letrec f = \\n. if n==0 then 1 else n*f(n-1) in f 5{RESET} == 120.0")
+
+    print("\nif_let_letrec(): All tests passed!\n")
+
+def test_sequencing_lists():
+    BLUE = '\033[94m'
+    RESET = '\033[0m'
+    
+    assert interpret("1 ;; 2") == "1.0 ;; 2.0"
+    print(f"PROG {BLUE}1 ;; 2{RESET} == 1.0 ;; 2.0")
+    
+    assert interpret("#") == "#"
+    print(f"LIST {BLUE}#{RESET} == #")
+    
+    assert interpret("1:#") == "(1.0 : #)"
+    expr = "1:#"
+    print(f"LIST {BLUE}{expr}{RESET} == (1.0 : #)")
+    
+    assert interpret("1:2:3:#") == "(1.0 : (2.0 : (3.0 : #)))"
+    expr = "1:2:3:#"
+    print(f"LIST {BLUE}{expr}{RESET} == (1.0 : (2.0 : (3.0 : #)))")
+    
+    assert interpret("hd (1:2:#)") == "1.0"
+    print(f"LIST {BLUE}hd (1:2:#){RESET} == 1.0")
+    
+    assert interpret("tl (1:2:#)") == "(2.0 : #)"
+    print(f"LIST {BLUE}tl (1:2:#){RESET} == (2.0 : #)")
+    
+    assert interpret("1:2 == 1:2") == "1.0"
+    print(f"LIST {BLUE}1:2 == 1:2{RESET} == 1.0")
+
+    print("\nsequencing_lists(): All tests passed!\n")
+
+def test_higher_order():
+    BLUE = '\033[94m'
+    RESET = '\033[0m'
+    
+    assert interpret(
+        r"letrec map = \f. \xs. if xs==# then # else (f (hd xs)) : (map f (tl xs)) in "
+        r"(map (\x.x+1) (1:2:3:#))"
+    ) == "(2.0 : (3.0 : (4.0 : #)))"
+    print(f"MAP {BLUE}letrec map = ... in (map (\\x.x+1) (1:2:3:#)){RESET} == (2.0 : (3.0 : (4.0 : #)))")
+
+    print("\nhigher_order(): All tests passed!\n")
+
 if __name__ == "__main__":
-    print(Fore.GREEN + "\nTEST PARSING\n" + Style.RESET_ALL); test_parse()
-    print(Fore.GREEN + "\nTEST SUBSTITUTION\n" + Style.RESET_ALL); test_substitute()
-    print(Fore.GREEN + "\nTEST EVALUATION\n" + Style.RESET_ALL); test_evaluate()
-    print(Fore.GREEN + "\nTEST INTERPRETATION\n" + Style.RESET_ALL); test_interpret()
+    print(Fore.GREEN + "\nTEST PARSING\n" + Style.RESET_ALL)
+    test_parse()
+    print(Fore.GREEN + "TEST SUBSTITUTION\n" + Style.RESET_ALL)
+    test_substitute()
+    print(Fore.GREEN + "TEST EVALUATION\n" + Style.RESET_ALL)
+    test_evaluate()
+    print(Fore.GREEN + "\nTEST INTERPRETATION\n" + Style.RESET_ALL)
+    test_interpret()
+    print(Fore.GREEN + "TEST ARITHMETIC\n" + Style.RESET_ALL)
+    test_arithmetic()
+    print(Fore.GREEN + "TEST LAMBDA ARITHMETIC\n" + Style.RESET_ALL)
+    test_lambda_arith()
+    print(Fore.GREEN + "TEST IF/LET/LETREC\n" + Style.RESET_ALL)
+    test_if_let_letrec()
+    print(Fore.GREEN + "TEST SEQUENCING & LISTS\n" + Style.RESET_ALL)
+    test_sequencing_lists()
+    print(Fore.GREEN + "TEST HIGHER-ORDER FUNCTIONS\n" + Style.RESET_ALL)
+    test_higher_order()
+    
